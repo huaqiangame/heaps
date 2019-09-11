@@ -1,10 +1,12 @@
+
+import haxe.Timer;
 import h3d.scene.*;
 
+@:expose
 class Base3D extends SampleApp {
-
-	var time : Float = 0.;
-	var obj1 : Mesh;
-	var obj2 : Mesh;
+	var time:Float = 0.;
+	var obj1:Mesh;
+	var obj2:Mesh;
 
 	override function init() {
 		super.init();
@@ -13,7 +15,7 @@ class Base3D extends SampleApp {
 		var prim = new h3d.prim.Cube();
 
 		// translate it so its center will be at the center of the cube
-		prim.translate( -0.5, -0.5, -0.5);
+		prim.translate(-0.5, -0.5, -0.5);
 
 		// unindex the faces to create hard edges normals
 		prim.unindex();
@@ -57,12 +59,15 @@ class Base3D extends SampleApp {
 		obj2.material.shadows = false;
 
 		if (engine.driver.hasFeature(Wireframe)) {
-			addCheck("Wireframe", function() { return obj2.material.mainPass.wireframe; }, function(v) { obj2.material.mainPass.wireframe = v; });
+			addCheck("Wireframe", function() {
+				return obj2.material.mainPass.wireframe;
+			}, function(v) {
+				obj2.material.mainPass.wireframe = v;
+			});
 		}
 	}
 
-	override function update( dt : Float ) {
-
+	override function update(dt:Float) {
 		// time is flying...
 		time += 0.6 * dt;
 
@@ -74,13 +79,38 @@ class Base3D extends SampleApp {
 		obj2.setRotationAxis(-0.5, 2, Math.cos(time), time + Math.PI / 2);
 	}
 
-	static function main() {
+	static var base3d:Base3D;
 
-		// initialize embeded ressources
-		hxd.Res.initEmbed();
-
-		// start the application
-		new Base3D();
+	static public function toDispose() {
+		if (base3d != null) {
+			trace("准备销毁base3d");
+			
+			base3d.dispose();
+			trace("已经销毁");
+			base3d=null;
+			
+			
+		}
 	}
 
+	static var wasEmbed = false;
+
+	static public function main() {
+		if (base3d != null) {
+			toDispose();
+			base3d = null;
+		}
+		// initialize embeded ressources
+		//if (!wasEmbed) {
+			hxd.Res.initEmbed();
+			wasEmbed = true;
+		//}
+
+		// start the application
+
+		Timer.delay(function (){
+			base3d = new Base3D();
+		},100);
+		
+	}
 }

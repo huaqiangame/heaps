@@ -11,39 +11,39 @@ package hxd;
 	custom code. See API documentation for more information.
 **/
 class App implements h3d.IDrawable {
-
 	/**
 		Rendering engine.
 	**/
-	public var engine(default,null) : h3d.Engine;
+	public var engine(default, null):h3d.Engine;
 
 	/**
 		Default 3D scene.
 	**/
-	public var s3d(default,null) : h3d.scene.Scene;
+	public var s3d(default, null):h3d.scene.Scene;
 
 	/**
 		Default 2D scene.
 	**/
-	public var s2d(default,null) : h2d.Scene;
+	public var s2d(default, null):h2d.Scene;
 
 	/**
 		Input event listener collection.
 		Both 2D and 3D scenes are added to it by default.
 	**/
-	public var sevents(default,null) : hxd.SceneEvents;
+	public var sevents(default, null):hxd.SceneEvents;
 
-	var isDisposed : Bool;
+	var isDisposed:Bool;
 
 	public function new() {
 		var engine = h3d.Engine.getCurrent();
-		if( engine != null ) {
+		if (engine != null) {
 			this.engine = engine;
 			engine.onReady = setup;
 			haxe.Timer.delay(setup, 0);
 		} else {
 			hxd.System.start(function() {
 				this.engine = engine = @:privateAccess new h3d.Engine();
+				this.engine.backgroundColor = null;
 				engine.onReady = setup;
 				engine.init();
 			});
@@ -56,32 +56,31 @@ class App implements h3d.IDrawable {
 		By default does nothing. Override this method to provide custom on-resize logic.
 	**/
 	@:dox(show)
-	function onResize() {
-	}
+	function onResize() {}
 
 	/**
 		Switch either the 2d or 3d scene with another instance, both in terms of rendering and event handling.
 		If you call disposePrevious, it will call dispose() on the previous scene.
 	**/
-	public function setScene( scene : hxd.SceneEvents.InteractiveScene, disposePrevious = true ) {
+	public function setScene(scene:hxd.SceneEvents.InteractiveScene, disposePrevious = true) {
 		var new2D = hxd.impl.Api.downcast(scene, h2d.Scene);
 		var new3D = hxd.impl.Api.downcast(scene, h3d.scene.Scene);
-		if( new2D != null )
+		if (new2D != null)
 			sevents.removeScene(s2d);
-		if( new3D != null )
+		if (new3D != null)
 			sevents.removeScene(s3d);
 		sevents.addScene(scene);
-		if( disposePrevious ) {
-			if( new2D != null )
+		if (disposePrevious) {
+			if (new2D != null)
 				s2d.dispose();
-			else if( new3D != null )
+			else if (new3D != null)
 				s3d.dispose();
 			else
 				throw "Can't dispose previous scene";
 		}
-		if( new2D != null )
+		if (new2D != null)
 			this.s2d = new2D;
-		if( new3D != null )
+		if (new3D != null)
 			this.s3d = new3D;
 	}
 
@@ -93,25 +92,26 @@ class App implements h3d.IDrawable {
 		isDisposed = false;
 		engine.onReady = staticHandler; // in case we have another pending app
 		engine.onResized = function() {
-			if( s2d == null ) return; // if disposed
+			if (s2d == null)
+				return; // if disposed
 			s2d.checkResize();
 			onResize();
 		};
 		hxd.System.setLoop(mainLoop);
 	}
 
-	function setScene2D( s2d : h2d.Scene, disposePrevious = true ) {
+	function setScene2D(s2d:h2d.Scene, disposePrevious = true) {
 		sevents.removeScene(this.s2d);
-		sevents.addScene(s2d,0);
-		if( disposePrevious )
+		sevents.addScene(s2d, 0);
+		if (disposePrevious)
 			this.s2d.dispose();
 		this.s2d = s2d;
 	}
 
-	function setScene3D( s3d : h3d.scene.Scene, disposePrevious = true ) {
+	function setScene3D(s3d:h3d.scene.Scene, disposePrevious = true) {
 		sevents.removeScene(this.s3d);
 		sevents.addScene(s3d);
-		if ( disposePrevious )
+		if (disposePrevious)
 			this.s3d.dispose();
 		this.s3d = s3d;
 	}
@@ -125,9 +125,11 @@ class App implements h3d.IDrawable {
 		var initDone = false;
 		engine.onReady = staticHandler;
 		engine.onResized = function() {
-			if( s2d == null ) return; // if disposed
+			if (s2d == null)
+				return; // if disposed
 			s2d.checkResize();
-			if( initDone ) onResize();
+			if (initDone)
+				onResize();
 		};
 		s3d = new h3d.scene.Scene();
 		s2d = new h2d.Scene();
@@ -148,9 +150,17 @@ class App implements h3d.IDrawable {
 		engine.onResized = staticHandler;
 		engine.onContextLost = staticHandler;
 		isDisposed = true;
-		s2d.dispose();
-		s3d.dispose();
-		sevents.dispose();
+		if (s2d != null)
+			s2d.dispose();
+		if (s3d != null)
+			s3d.dispose();
+		if (sevents != null)
+			sevents.dispose();
+		if (engine != null) {
+			engine.dispose();
+			engine = null;
+		}
+		hxd.Window.getInstance().dispose();
 	}
 
 	/**
@@ -160,10 +170,10 @@ class App implements h3d.IDrawable {
 		Override this method to provide asynchronous asset loading logic.
 
 		@param onLoaded a callback that should be called by the overriden
-		                method when loading is complete
+						method when loading is complete
 	**/
 	@:dox(show)
-	function loadAssets( onLoaded : Void->Void ) {
+	function loadAssets(onLoaded:Void->Void) {
 		onLoaded();
 	}
 
@@ -174,15 +184,16 @@ class App implements h3d.IDrawable {
 		By default does nothing. Override this method to provide application initialization logic.
 	**/
 	@:dox(show)
-	function init() {
-	}
+	function init() {}
 
 	function mainLoop() {
 		hxd.Timer.update();
 		sevents.checkEvents();
-		if( isDisposed ) return;
+		if (isDisposed)
+			return;
 		update(hxd.Timer.dt);
-		if( isDisposed ) return;
+		if (isDisposed)
+			return;
 		var dt = hxd.Timer.dt; // fetch again in case it's been modified in update()
 		s2d.setElapsedTime(dt);
 		s3d.setElapsedTime(dt);
@@ -198,9 +209,7 @@ class App implements h3d.IDrawable {
 		@param dt Time elapsed since last frame, normalized.
 	**/
 	@:dox(show)
-	function update( dt : Float ) {
-	}
+	function update(dt:Float) {}
 
 	static function staticHandler() {}
-
 }

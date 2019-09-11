@@ -200,7 +200,7 @@ class GlDriver extends Driver {
 	public function new(antiAlias=0) {
 		#if js
 		canvas = @:privateAccess hxd.Window.getInstance().canvas;
-		var options = {alpha:false,stencil:true,antialias:antiAlias>0};
+		var options = {alpha:true,stencil:true,antialias:antiAlias>0};
 		if(ALLOW_WEBGL2)
 			gl = cast canvas.getContext("webgl2",options);
 		if( gl == null )
@@ -781,6 +781,13 @@ class GlDriver extends Driver {
 		if( canvas.style.width == "" ) {
 			canvas.style.width = Std.int(width / js.Browser.window.devicePixelRatio)+"px";
 			canvas.style.height = Std.int(height / js.Browser.window.devicePixelRatio)+"px";
+		}
+
+		if(width<1024){
+			width=1024;
+		}
+		if(height<1024){
+			height=1024;
 		}
 		canvas.width = width;
 		canvas.height = height;

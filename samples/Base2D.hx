@@ -1,3 +1,4 @@
+import hxd.Stage;
 class Base2D extends hxd.App {
 
 	var obj : h2d.Object;
@@ -42,6 +43,8 @@ class Base2D extends hxd.App {
 		tf.y = 20;
 		tf.x = 20;
 		tf.scale(7);
+	   
+		
 	}
 
 	// if we the window has been resized
@@ -62,7 +65,7 @@ class Base2D extends hxd.App {
 		if( obj != null ) obj.rotation += 0.6 * dt;
 	}
 
-	static function main() {
+	public static function main() {
 		hxd.Res.initEmbed();
 		new Base2D();
 	}

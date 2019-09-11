@@ -1,11 +1,13 @@
 package h3d;
+
 import h3d.mat.Data;
 
 private class TargetTmp {
-	public var t : h3d.mat.Texture;
-	public var next : TargetTmp;
-	public var layer : Int;
-	public var mipLevel : Int;
+	public var t:h3d.mat.Texture;
+	public var next:TargetTmp;
+	public var layer:Int;
+	public var mipLevel:Int;
+
 	public function new(t, n, l, m) {
 		this.t = t;
 		this.next = n;
@@ -15,43 +17,44 @@ private class TargetTmp {
 }
 
 class Engine {
+	public var driver(default, null):h3d.impl.Driver;
 
-	public var driver(default,null) : h3d.impl.Driver;
+	public var mem(default, null):h3d.impl.MemoryManager;
 
-	public var mem(default,null) : h3d.impl.MemoryManager;
+	public var hardware(default, null):Bool;
+	public var width(default, null):Int;
+	public var height(default, null):Int;
+	public var debug(default, set):Bool;
 
-	public var hardware(default, null) : Bool;
-	public var width(default, null) : Int;
-	public var height(default, null) : Int;
-	public var debug(default, set) : Bool;
+	public var drawTriangles(default, null):Int;
+	public var drawCalls(default, null):Int;
+	public var shaderSwitches(default, null):Int;
 
-	public var drawTriangles(default, null) : Int;
-	public var drawCalls(default, null) : Int;
-	public var shaderSwitches(default, null) : Int;
+	public var backgroundColor:Null<Int> = 0xFF000000;
+	public var autoResize:Bool;
+	public var fullScreen(default, set):Bool;
 
-	public var backgroundColor : Null<Int> = 0xFF000000;
-	public var autoResize : Bool;
-	public var fullScreen(default, set) : Bool;
+	public var fps(get, never):Float;
 
-	public var fps(get, never) : Float;
-
-	var realFps : Float;
-	var lastTime : Float;
-	var antiAlias : Int;
+	var realFps:Float;
+	var lastTime:Float;
+	var antiAlias:Int;
 	var tmpVector = new h3d.Vector();
-	var window : hxd.Window;
+	var window:hxd.Window;
 
-	var targetTmp : TargetTmp;
-	var targetStack : TargetTmp;
-	var currentTargetTex : h3d.mat.Texture;
-	var currentTargetLayer : Int;
-	var currentTargetMip : Int;
-	var needFlushTarget : Bool;
-	var nullTexture : h3d.mat.Texture;
-	var textureColorCache = new Map<Int,h3d.mat.Texture>();
-	public var ready(default,null) = false;
-	@:allow(hxd.res) var resCache = new Map<{},Dynamic>();
-	
+	var targetTmp:TargetTmp;
+	var targetStack:TargetTmp;
+	var currentTargetTex:h3d.mat.Texture;
+	var currentTargetLayer:Int;
+	var currentTargetMip:Int;
+	var needFlushTarget:Bool;
+	var nullTexture:h3d.mat.Texture;
+	var textureColorCache = new Map<Int, h3d.mat.Texture>();
+
+	public var ready(default, null) = false;
+
+	@:allow(hxd.res) var resCache = new Map<{}, Dynamic>();
+
 	public static var SOFTWARE_DRIVER = false;
 	public static var ANTIALIASING = 0;
 
@@ -76,18 +79,19 @@ class Engine {
 		#elseif usesys
 		driver = new haxe.GraphicsDriver(antiAlias);
 		#else
-		#if sys Sys.println #else trace #end("No output driver available." #if hl + " Compile with -lib hlsdl or -lib hldx" #end);
+		#if sys Sys.println #else trace #end ("No output driver available." #if hl + " Compile with -lib hlsdl or -lib hldx" #end);
 		driver = new h3d.impl.LogDriver(new h3d.impl.NullDriver());
 		driver.logEnable = true;
 		#end
 		setCurrent();
 	}
 
-	static var CURRENT : Engine = null;
+	static var CURRENT:Engine = null;
 
 	public function setDriver(d) {
 		driver = d;
-		if( mem != null ) mem.driver = d;
+		if (mem != null)
+			mem.driver = d;
 	}
 
 	public static inline function getCurrent() {
@@ -102,17 +106,17 @@ class Engine {
 		driver.init(onCreate, !hardware);
 	}
 
-	public function driverName(details=false) {
+	public function driverName(details = false) {
 		return driver.getDriverName(details);
 	}
 
-	public function selectShader( shader : hxsl.RuntimeShader ) {
+	public function selectShader(shader:hxsl.RuntimeShader) {
 		flushTarget();
-		if( driver.selectShader(shader) )
+		if (driver.selectShader(shader))
 			shaderSwitches++;
 	}
 
-	public function selectMaterial( pass : h3d.mat.Pass ) {
+	public function selectMaterial(pass:h3d.mat.Pass) {
 		driver.selectMaterial(pass);
 	}
 
@@ -120,31 +124,31 @@ class Engine {
 		driver.uploadShaderBuffers(buffers, which);
 	}
 
-	function selectBuffer( buf : Buffer ) {
-		if( buf.isDisposed() )
+	function selectBuffer(buf:Buffer) {
+		if (buf.isDisposed())
 			return false;
 		flushTarget();
 		driver.selectBuffer(buf);
 		return true;
 	}
 
-	public inline function renderTriBuffer( b : Buffer, start = 0, max = -1 ) {
+	public inline function renderTriBuffer(b:Buffer, start = 0, max = -1) {
 		return renderBuffer(b, mem.triIndexes, 3, start, max);
 	}
 
-	public inline function renderQuadBuffer( b : Buffer, start = 0, max = -1 ) {
+	public inline function renderQuadBuffer(b:Buffer, start = 0, max = -1) {
 		return renderBuffer(b, mem.quadIndexes, 2, start, max);
 	}
 
 	// we use preallocated indexes so all the triangles are stored inside our buffers
-	function renderBuffer( b : Buffer, indexes : Indexes, vertPerTri : Int, startTri = 0, drawTri = -1 ) {
-		if( indexes.isDisposed() )
+	function renderBuffer(b:Buffer, indexes:Indexes, vertPerTri:Int, startTri = 0, drawTri = -1) {
+		if (indexes.isDisposed())
 			return;
 		do {
 			var ntri = Std.int(b.vertices / vertPerTri);
 			var pos = Std.int(b.position / vertPerTri);
-			if( startTri > 0 ) {
-				if( startTri >= ntri ) {
+			if (startTri > 0) {
+				if (startTri >= ntri) {
 					startTri -= ntri;
 					b = b.next;
 					continue;
@@ -153,33 +157,35 @@ class Engine {
 				ntri -= startTri;
 				startTri = 0;
 			}
-			if( drawTri >= 0 ) {
-				if( drawTri == 0 ) return;
+			if (drawTri >= 0) {
+				if (drawTri == 0)
+					return;
 				drawTri -= ntri;
-				if( drawTri < 0 ) {
+				if (drawTri < 0) {
 					ntri += drawTri;
 					drawTri = 0;
 				}
 			}
-			if( ntri > 0 && selectBuffer(b) ) {
+			if (ntri > 0 && selectBuffer(b)) {
 				// *3 because it's the position in indexes which are always by 3
 				driver.draw(indexes.ibuf, pos * 3, ntri);
 				drawTriangles += ntri;
 				drawCalls++;
 			}
 			b = b.next;
-		} while( b != null );
+		} while (b != null);
 	}
 
 	// we use custom indexes, so the number of triangles is the number of indexes/3
-	public function renderIndexed( b : Buffer, indexes : Indexes, startTri = 0, drawTri = -1 ) {
-		if( b.next != null )
+	public function renderIndexed(b:Buffer, indexes:Indexes, startTri = 0, drawTri = -1) {
+		if (b.next != null)
 			throw "Buffer is split";
-		if( indexes.isDisposed() )
+		if (indexes.isDisposed())
 			return;
 		var maxTri = Std.int(indexes.count / 3);
-		if( drawTri < 0 ) drawTri = maxTri - startTri;
-		if( drawTri > 0 && selectBuffer(b) ) {
+		if (drawTri < 0)
+			drawTri = maxTri - startTri;
+		if (drawTri > 0 && selectBuffer(b)) {
 			// *3 because it's the position in indexes which are always by 3
 			driver.draw(indexes.ibuf, startTri * 3, drawTri);
 			drawTriangles += drawTri;
@@ -187,15 +193,17 @@ class Engine {
 		}
 	}
 
-	public function renderMultiBuffers( buffers : Buffer.BufferOffset, indexes : Indexes, startTri = 0, drawTri = -1 ) {
+	public function renderMultiBuffers(buffers:Buffer.BufferOffset, indexes:Indexes, startTri = 0, drawTri = -1) {
 		var maxTri = Std.int(indexes.count / 3);
-		if( maxTri <= 0 ) return;
+		if (maxTri <= 0)
+			return;
 		flushTarget();
 		driver.selectMultiBuffers(buffers);
-		if( indexes.isDisposed() )
+		if (indexes.isDisposed())
 			return;
-		if( drawTri < 0 ) drawTri = maxTri - startTri;
-		if( drawTri > 0 ) {
+		if (drawTri < 0)
+			drawTri = maxTri - startTri;
+		if (drawTri > 0) {
 			// render
 			driver.draw(indexes.ibuf, startTri * 3, drawTri);
 			drawTriangles += drawTri;
@@ -203,12 +211,12 @@ class Engine {
 		}
 	}
 
-	public function renderInstanced( buffers : Buffer.BufferOffset, indexes : Indexes, commands : h3d.impl.InstanceBuffer ) {
+	public function renderInstanced(buffers:Buffer.BufferOffset, indexes:Indexes, commands:h3d.impl.InstanceBuffer) {
 		flushTarget();
 		driver.selectMultiBuffers(buffers);
-		if( indexes.isDisposed() )
+		if (indexes.isDisposed())
 			return;
-		if( commands.commandCount > 0 ) {
+		if (commands.commandCount > 0) {
 			driver.drawInstanced(indexes.ibuf, commands);
 			drawTriangles += commands.triCount;
 			drawCalls++;
@@ -221,13 +229,18 @@ class Engine {
 		return d;
 	}
 
-	function onCreate( disposed ) {
+	function onCreate(disposed) {
 		setCurrent();
-		if( autoResize ) {
+		if (autoResize) {
 			width = window.width;
 			height = window.height;
 		}
-		if( disposed )
+
+		if(width+height<100){
+			width=oWidth;
+			height=oHeight;
+		}
+		if (disposed)
 			mem.onContextLost();
 		else {
 			mem = new h3d.impl.MemoryManager(driver);
@@ -237,23 +250,21 @@ class Engine {
 		set_debug(debug);
 		set_fullScreen(fullScreen);
 		resize(width, height);
-		if( disposed )
+		if (disposed)
 			onContextLost();
 		else
 			onReady();
 		ready = true;
 	}
 
-	public dynamic function onContextLost() {
-	}
+	public dynamic function onContextLost() {}
 
-	public dynamic function onReady() {
-	}
+	public dynamic function onReady() {}
 
 	function onWindowResize() {
-		if( autoResize && !driver.isDisposed() ) {
+		if (autoResize && !driver.isDisposed()) {
 			var w = window.width, h = window.height;
-			if( w != width || h != height )
+			if (w != width || h != height)
 				resize(w, h);
 			onResized();
 		}
@@ -261,25 +272,38 @@ class Engine {
 
 	function set_fullScreen(v) {
 		fullScreen = v;
-		if( mem != null && hxd.System.getValue(IsWindowed) )
+		if (mem != null && hxd.System.getValue(IsWindowed))
 			window.setFullScreen(v);
 		return v;
 	}
 
-	public dynamic function onResized() {
-	}
-
+	public dynamic function onResized() {}
+static var oWidth=1024;
+static  var oHeight=1024;
 	public function resize(width, height) {
 		// minimum 32x32 size
-		if( width < 32 ) width = 32;
-		if( height < 32 ) height = 32;
-		this.width = width;
+		if (width < 32)
+			width = 32;
+		if (height < 32)
+			height = 32;
+
+		if (width + height < 100) {
+		 this.width = oWidth;
+		this.height = oHeight;
+		}else{
+
+	    this.width = width;
 		this.height = height;
-		if( !driver.isDisposed() ) driver.resize(width, height);
+		oWidth=width;
+		oHeight=height;
+		}
+	
+		if (!driver.isDisposed())
+			driver.resize(width, height);
 	}
 
 	public function begin() {
-		if( driver.isDisposed() )
+		if (driver.isDisposed())
 			return false;
 		// init
 		drawTriangles = 0;
@@ -291,7 +315,8 @@ class Engine {
 		haxe.System.beginFrame();
 		#end
 		driver.begin(hxd.Timer.frameCount);
-		if( backgroundColor != null ) clear(backgroundColor, 1, 0);
+		if (backgroundColor != null)
+			clear(backgroundColor, 1, 0);
 		return true;
 	}
 
@@ -307,9 +332,9 @@ class Engine {
 		return targetStack == null ? null : targetStack.t;
 	}
 
-	public function pushTarget( tex : h3d.mat.Texture, layer = 0, mipLevel = 0 ) {
+	public function pushTarget(tex:h3d.mat.Texture, layer = 0, mipLevel = 0) {
 		var c = targetTmp;
-		if( c == null )
+		if (c == null)
 			c = new TargetTmp(tex, targetStack, layer, mipLevel);
 		else {
 			targetTmp = c.next;
@@ -324,14 +349,15 @@ class Engine {
 
 	function updateNeedFlush() {
 		var t = targetStack;
-		if( t == null )
+		if (t == null)
 			needFlushTarget = currentTargetTex != null;
 		else
 			needFlushTarget = currentTargetTex != t.t || currentTargetLayer != t.layer || currentTargetMip != t.mipLevel;
 	}
 
-	public function pushTargets( textures : Array<h3d.mat.Texture> ) {
-		if( nullTexture == null ) nullTexture = new h3d.mat.Texture(0, 0, [NoAlloc]);
+	public function pushTargets(textures:Array<h3d.mat.Texture>) {
+		if (nullTexture == null)
+			nullTexture = new h3d.mat.Texture(0, 0, [NoAlloc]);
 		pushTarget(nullTexture);
 		driver.setRenderTargets(textures);
 		currentTargetTex = nullTexture;
@@ -340,7 +366,7 @@ class Engine {
 
 	public function popTarget() {
 		var c = targetStack;
-		if( c == null )
+		if (c == null)
 			throw "popTarget() with no matching pushTarget()";
 		targetStack = c.next;
 		updateNeedFlush();
@@ -351,12 +377,13 @@ class Engine {
 	}
 
 	inline function flushTarget() {
-		if( needFlushTarget ) doFlushTarget();
+		if (needFlushTarget)
+			doFlushTarget();
 	}
 
 	function doFlushTarget() {
 		var t = targetStack;
-		if( t == null ) {
+		if (t == null) {
 			driver.setRenderTarget(null);
 			currentTargetTex = null;
 		} else {
@@ -368,13 +395,13 @@ class Engine {
 		needFlushTarget = false;
 	}
 
-	public function clearF( color : h3d.Vector, ?depth : Float, ?stencil : Int ) {
+	public function clearF(color:h3d.Vector, ?depth:Float, ?stencil:Int) {
 		flushTarget();
 		driver.clear(color, depth, stencil);
 	}
 
-	public function clear( ?color : Int, ?depth : Float, ?stencil : Int ) {
-		if( color != null )
+	public function clear(?color:Int, ?depth:Float, ?stencil:Int) {
+		if (color != null)
 			tmpVector.setColor(color);
 		flushTarget();
 		driver.clear(color == null ? null : tmpVector, depth, stencil);
@@ -384,35 +411,44 @@ class Engine {
 	 * Sets up a scissored zone to eliminate pixels outside the given range.
 	 * Call with no parameters to reset to full viewport.
 	 */
-	public function setRenderZone( x = 0, y = 0, width = -1, height = -1 ) : Void {
+	public function setRenderZone(x = 0, y = 0, width = -1, height = -1):Void {
 		flushTarget();
 		driver.setRenderZone(x, y, width, height);
 	}
 
-	public function render( obj : { function render( engine : Engine ) : Void; } ) {
-		if( !begin() ) return false;
+	public function render(obj:{function render(engine:Engine):Void;}) {
+		if (!begin())
+			return false;
 		obj.render(this);
 		end();
 
 		var delta = haxe.Timer.stamp() - lastTime;
 		lastTime += delta;
-		if( delta > 0 ) {
+		if (delta > 0) {
 			var curFps = 1. / delta;
-			if( curFps > realFps * 2 ) curFps = realFps * 2 else if( curFps < realFps * 0.5 ) curFps = realFps * 0.5;
+			if (curFps > realFps * 2)
+				curFps = realFps * 2
+			else if (curFps < realFps * 0.5)
+				curFps = realFps * 0.5;
 			var f = delta / .5;
-			if( f > 0.3 ) f = 0.3;
+			if (f > 0.3)
+				f = 0.3;
 			realFps = realFps * (1 - f) + curFps * f; // smooth a bit the fps
 		}
 		return true;
 	}
 
 	public function dispose() {
+		CURRENT = null;
 		driver.dispose();
 		window.removeResizeEvent(onWindowResize);
+
+		driver = null;
+		mem.dispose();
+		ready = false;
 	}
 
 	function get_fps() {
 		return Math.ceil(realFps * 100) / 100;
 	}
-
 }

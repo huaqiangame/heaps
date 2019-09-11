@@ -96,6 +96,15 @@ class Window {
 		timer.run = checkResize;
 	}
 
+	public function dispose() {
+		canvas=null;
+		
+		timer.stop();
+		timer=null;
+		inst=null;
+		
+	}
+
 	function checkResize() {
 		canvasPos = canvas.getBoundingClientRect();
 		var cw = this.width, ch = this.height;
@@ -106,9 +115,9 @@ class Window {
 		}
 	}
 
-	public function dispose() {
-		timer.stop();
-	}
+	// public function dispose() {
+	// 	timer.stop();
+	// }
 
 	public dynamic function onClose() : Bool {
 		return true;
@@ -152,14 +161,6 @@ class Window {
 	}
 
 	public function setFullScreen( v : Bool ) : Void {
-		var doc = js.Browser.document;
-		var elt : Dynamic = doc.documentElement;
-		if( (doc.fullscreenElement == elt) == v )
-			return;
-		if( v )
-			elt.requestFullscreen();
-		else
-			doc.exitFullscreen();
 	}
 
 	public function setCurrent() {
